@@ -1,34 +1,54 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { LoginResponse } from '../types/login-response-types';
+import { BehaviorSubject, Observable, of, tap, throwError } from 'rxjs';
 import { LoginRequest } from '../types/login-request-types';
-import { API_BASE } from '../config/api.config';
-import { Observable, tap, BehaviorSubject } from 'rxjs';
+import { LoginResponse } from '../types/login-response-types';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class LoginService {
 
-  apiUrl: string = `${API_BASE}/auth`;
   private tokenKey = 'auth_token';
   private userKey = 'auth_user';
   private userSubject = new BehaviorSubject<any | null>(this.readUserFromStorage());
   user$ = this.userSubject.asObservable();
 
-  constructor(private http: HttpClient) { }
+  constructor() { }
+
+  /**
+   * Local (front-end) login: valida DRT e senha fixos igual a '3001262'.
+   * Retorna um Observable que emite um LoginResponse em caso de sucesso
+   * ou um erro quando inválido.
+   *
+   * OBS: isto remove a dependência do backend para autenticação —
+   * inseguro para produção, usado conforme solicitado.
+   */
   login(payload: LoginRequest): Observable<LoginResponse> {
-    const url = `${this.apiUrl}/login`;
-    console.log('[LoginService] POST', url, payload);
-    return this.http.post<LoginResponse>(url, payload).pipe(
-      tap((res: LoginResponse) => {
-        const token = res?.token;
-        if (token) {
+    const drt = String(payload.drtUsuario || '').trim();
+    const senha = String(payload.senhaUsuario || '').trim();
+
+    console.log('[LoginService] local login attempt', drt);
+
+    if (drt === '3001262' && senha === '3001262') {
+      const token = 'local-token-' + Math.random().toString(36).slice(2);
+      const res: LoginResponse = { token, drt: Number(drt), nome: 'Usuário Local', cargo: 'Usuário' };
+
+      try {
+        if (this.isBrowser()) {
           localStorage.setItem(this.tokenKey, token);
-          this.setUserFromResponse(res);
         }
-      })
-    );
+        this.setUserFromResponse(res);
+      } catch (e) {
+        console.warn('Failed to persist local login', e);
+      }
+
+      return of(res).pipe(
+        tap(() => {
+          // já persistimos acima — mantém compatibilidade com código que
+          // espera que o serviço salve o token via side-effect.
+        })
+      );
+    }
+
+    return throwError(() => new Error('Credenciais inválidas'));
   }
 
   getToken(): string | null {
