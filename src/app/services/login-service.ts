@@ -13,14 +13,6 @@ export class LoginService {
 
   constructor() { }
 
-  /**
-   * Local (front-end) login: valida DRT e senha fixos igual a '3001262'.
-   * Retorna um Observable que emite um LoginResponse em caso de sucesso
-   * ou um erro quando inválido.
-   *
-   * OBS: isto remove a dependência do backend para autenticação —
-   * inseguro para produção, usado conforme solicitado.
-   */
   login(payload: LoginRequest): Observable<LoginResponse> {
     const drt = String(payload.drtUsuario || '').trim();
     const senha = String(payload.senhaUsuario || '').trim();
