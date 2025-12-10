@@ -34,8 +34,6 @@ export class LoginService {
 
       return of(res).pipe(
         tap(() => {
-          // já persistimos acima — mantém compatibilidade com código que
-          // espera que o serviço salve o token via side-effect.
         })
       );
     }
